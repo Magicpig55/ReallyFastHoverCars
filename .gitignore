@@ -18,6 +18,9 @@ ExportedObj/
 *.booproj
 *.svd
 
+# Useless
+Thumbs.db
+Thumbs.db.meta
 
 # Unity3D generated meta files
 *.pidb.meta

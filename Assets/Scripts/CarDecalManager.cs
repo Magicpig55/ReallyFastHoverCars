@@ -18,7 +18,7 @@ public class CarDecalManager : MonoBehaviour {
     }
 
     private Renderer _renderer;
-    private new Renderer renderer {
+    public new Renderer renderer {
         get {
             return _renderer != null ? _renderer : (_renderer = GetComponent<Renderer>());
         }
