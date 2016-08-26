@@ -28,6 +28,13 @@ public class CarDecalManager : MonoBehaviour {
     void Start () {
 	    
 	}
+
+    void OnDestroy() {
+        Resources.UnloadAsset(renderer.material);
+    }
+    void OnApplicationQuit() {
+        Resources.UnloadAsset(renderer.material);
+    }
 	
 	// Update is called once per frame
 	void Update () {
