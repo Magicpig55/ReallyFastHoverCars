@@ -23,6 +23,6 @@ public class DecalPreview : MonoBehaviour {
 
     // Update is called once per frame
     void Update () {
-        image.color = CurrentDecal.Color;
+        if(CurrentDecal != null) image.color = CurrentDecal.Color;
 	}
 }

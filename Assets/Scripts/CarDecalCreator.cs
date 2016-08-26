@@ -103,12 +103,21 @@ public class CarDecalCreator : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-	    
+        RaycastHit rayHit;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+	    if (Physics.Raycast(ray, out rayHit)) {
+            if(rayHit.transform == transform) {
+                print("we hit ourself!");
+            }
+            print("raycast hit something");
+        }
+        print(rayHit.textureCoord);
 	}
 
-    private GameObject DecalOnCarPrefab = Resources.Load<GameObject>("DecalOnCar");
+    private GameObject DecalOnCarPrefab = null;
 
     public void AddDecal(CarDecal decal) {
+        if(DecalOnCarPrefab == null) Resources.Load<GameObject>("DecalOnCar");
         GameObject t = Instantiate(DecalOnCarPrefab);
         t.transform.SetParent(CurrentMaskedSide, false);
         t.GetComponent<DecalOnCar>().CurrentDecal = decal;
