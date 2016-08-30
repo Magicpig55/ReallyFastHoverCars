@@ -52,6 +52,7 @@ public class DecalSelector : MonoBehaviour {
             scrollRect.StopMovement();
             scrollRect.enabled = false;
             animator.SetTrigger("GoPreview");
+            decalCreator.SelectedDecalTexture = new CarDecal(ds.TextureID, Vector2.zero, CarDecalPart.None);
         } else {
             scrollRect.enabled = true;
             animator.SetTrigger("GoFull");

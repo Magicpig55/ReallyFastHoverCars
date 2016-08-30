@@ -4,11 +4,11 @@ using UnityEngine.UI;
 
 public class DecalOnCar : MonoBehaviour {
 
-    private CarDecal _currentDecal;
+    private CarDecal _currentDecal = null;
     public CarDecal CurrentDecal {
         set {
             rectTransform.position = value.Position;
-            rectTransform.Rotate(rectTransform.up, value.Rotation);
+            rectTransform.Rotate(rectTransform.forward, value.Rotation);
             rectTransform.localScale = value.Scale;
             image.color = value.Color;
             image.overrideSprite = DecalLibrary.Get(value.TextureID);
@@ -34,9 +34,11 @@ public class DecalOnCar : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-        rectTransform.position = CurrentDecal.Position;
-        rectTransform.Rotate(rectTransform.up, CurrentDecal.Rotation);
-        rectTransform.localScale = CurrentDecal.Scale;
-        image.color = CurrentDecal.Color;
+        if (CurrentDecal != null) {
+            rectTransform.localPosition = CurrentDecal.Position;
+            rectTransform.rotation = Quaternion.Euler(new Vector3(0, 0, CurrentDecal.Rotation));
+            rectTransform.localScale = CurrentDecal.Scale;
+            image.color = CurrentDecal.Color;
+        }
     }
 }

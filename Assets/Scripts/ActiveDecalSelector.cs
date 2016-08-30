@@ -26,10 +26,11 @@ public class ActiveDecalSelector : MonoBehaviour {
 
     private List<CarDecal> DecalList = new List<CarDecal>();
 
-    private GameObject decalPreviewPrefab = Resources.Load<GameObject>("DecalPreview");
+    private GameObject decalPreviewPrefab = null;
 
     public void AddDecal(CarDecal cd) {
         DecalList.Add(cd);
+        if(decalPreviewPrefab == null) decalPreviewPrefab = Resources.Load<GameObject>("DecalPreview");
         GameObject t = Instantiate(decalPreviewPrefab);
         t.transform.SetParent(scrollRect.content);
         t.GetComponent<DecalPreview>().CurrentDecal = cd;
@@ -37,7 +38,7 @@ public class ActiveDecalSelector : MonoBehaviour {
     }
 
     void DecalClicked(CarDecal decal) {
-        decalCreator.SelectedDecal = decal.associatedObject;
+        decalCreator.SelectedDecal = decal;
         decalCreator.SelectedSurface = decal.Part;
     }
 }

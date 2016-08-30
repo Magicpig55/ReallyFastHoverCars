@@ -9,29 +9,27 @@ public class CarDecalCreator : MonoBehaviour {
     public RenderTexture EditorRenderTexture;
     public int EditorRenderResolution = 1024; // Soon this'll be a property, once I get options implemented
     public CarDecalManager CarToManage;
-    [HideInInspector]
-    public CarDecalPart SelectedSurface = CarDecalPart.None;
+    public CarDecalPart SelectedSurface = CarDecalPart.Top;
 
-    private Transform _selectedDecal;
+    private CarDecal _selectedDecal;
     private Transform _selectionMarker;
     private Transform selectionMarker {
         get {
-            return _selectionMarker == null ? (_selectionMarker = GameObject.Find("SelectionMarker").transform) : _selectionMarker;
+            return _selectionMarker == null ? (_selectionMarker = transform.Find("Canvas/SelectionMarker")) : _selectionMarker;
         }
     }
-    public Transform SelectedDecal {
+    public CarDecal SelectedDecal {
         get {
             return _selectedDecal;
         }
         set {
             if (value == null) {
-                //selectionMarker.gameObject.SetActive(false);
+                selectionMarker.gameObject.SetActive(false);
                 _selectedDecal = null;
             } else {
                 _selectedDecal = value;
-                //selectionMarker.gameObject.SetActive(true);
-                //selectionMarker.SetParent(_selectedDecal, false);
-                //selectionMarker.GetComponent<Renderer>().enabled = true;
+                selectionMarker.gameObject.SetActive(true);
+                selectionMarker.SetParent(_selectedDecal.associatedObject.transform, false);
             }
         }
     }
@@ -63,15 +61,48 @@ public class CarDecalCreator : MonoBehaviour {
     private Transform _mainCamControl;
     private Transform mainCamControl {
         get {
-            return _mainCamControl == null ? (_mainCamControl = GameObject.Find("CamControl").transform) : _mainCamControl;
+            if (_mainCamControl == null) {
+                _mainCamControl = GameObject.Find("CamControl").transform;
+                TopView = _mainCamControl.Find("TopView");
+                RightView = _mainCamControl.Find("RightView");
+                LeftView = _mainCamControl.Find("LeftView");
+                HoodView = _mainCamControl.Find("HoodView");
+                RearView = _mainCamControl.Find("RearView");
+                DefaultView = _mainCamControl.Find("DefaultViewHelper/SecondaryViewHelper/DefaultView");
+                FocalPoint = _mainCamControl.Find("FocalPoint");
+            }
+            return _mainCamControl;
         }
     }
 
-    private Transform MaskTop;
-    private Transform MaskLeft;
-    private Transform MaskRight;
-    private Transform MaskHood;
-    private Transform MaskRear;
+    private Transform TopView;
+    private Transform LeftView;
+    private Transform RightView;
+    private Transform HoodView;
+    private Transform RearView;
+    private Transform DefaultView;
+    private Transform FocalPoint;
+
+    private Transform _currentView;
+    private Transform CurrentView {
+        get {
+            if (mainCamControl == null) ;
+            switch (SelectedSurface) {
+                case CarDecalPart.Hood: return HoodView;
+                case CarDecalPart.Top: return TopView;
+                case CarDecalPart.Right: return RightView;
+                case CarDecalPart.Left: return LeftView;
+                case CarDecalPart.Rear: return RearView;
+                default: return DefaultView;
+            }
+        }
+    }
+
+    public Transform MaskTop;
+    public Transform MaskLeft;
+    public Transform MaskRight;
+    public Transform MaskHood;
+    public Transform MaskRear;
 
     private Transform CurrentMaskedSide {
         get {
@@ -100,28 +131,119 @@ public class CarDecalCreator : MonoBehaviour {
             camera.Render();
         }
 	}
-	
+
+    private bool rotating = false;
+    private float baseAngle = 0;
+
+    private bool scaling = false;
+    private Vector2 baseScale = Vector2.one;
+    private float baseDist = 0;
+
 	// Update is called once per frame
 	void Update () {
-        RaycastHit rayHit;
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-	    if (Physics.Raycast(ray, out rayHit)) {
-            if(rayHit.transform == transform) {
-                print("we hit ourself!");
+        //if(Input.GetKeyDown(KeyCode.S)) {
+        //    if(SelectedDecal != null) {
+        //        SelectedDecal.Scale = Vector2.one * Random.Range(0.2f, 3.0f);
+        //        SelectedDecal.Rotation += Random.Range(10f, 60f);
+        //    }
+        //}
+        Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, CurrentView.position, Time.deltaTime * 5f);
+        Camera.main.transform.rotation = Quaternion.Slerp(Camera.main.transform.rotation, CurrentView.rotation, Time.deltaTime * 5f);
+        if(Input.GetMouseButton(2)) {
+            //mainCamControl.Rotate(Vector3.up, Input.GetAxis("Mouse X") * 5);
+            if(CurrentView == TopView) {
+                CurrentView.Rotate(Vector3.forward, Input.GetAxis("Mouse X") * 5);
+            } else if (CurrentView == LeftView || CurrentView == RightView) {
+                CurrentView.position += CurrentView.right * Input.GetAxis("Mouse X");
+                CurrentView.position += CurrentView.up * Input.GetAxis("Mouse Y");
+            } else if (CurrentView == DefaultView) {
+                CurrentView.parent.parent.Rotate(Vector3.up * Input.GetAxis("Mouse X") * 5f);
+                CurrentView.parent.Rotate(Vector3.right * Input.GetAxis("Mouse Y") * 5f);
+                Vector3 bep = CurrentView.parent.localEulerAngles;
+                if (bep.x > 80 && bep.x < 180) bep.x = 80;
+                if (bep.x < 0 || bep.x > 180) bep.x = 0;
+                CurrentView.parent.localEulerAngles = bep;
+                //CurrentView.RotateAround(FocalPoint.position, CurrentView.right, Input.GetAxis("Mouse Y") * 5);
             }
-            print("raycast hit something");
         }
-        print(rayHit.textureCoord);
-	}
+        // Scaling
+        if (Input.GetKeyDown(KeyCode.S)) {
+            scaling = true;
+            baseScale = SelectedDecal.Scale;
+            baseDist = Vector2.Distance(Camera.main.WorldToScreenPoint(SelectedDecal.roughPosition), Input.mousePosition);
+        }
+        if (Input.GetKey(KeyCode.S)) {
+            SelectedDecal.Scale = baseScale * (Vector2.Distance(Camera.main.WorldToScreenPoint(SelectedDecal.roughPosition), Input.mousePosition) / baseDist);
+        }
+        if (Input.GetKeyUp(KeyCode.S)) {
+            scaling = false;
+        }
+        // Rotation
+        if (Input.GetKeyDown(KeyCode.R)) {
+            rotating = true;
+            baseAngle = SelectedDecal.Rotation - 270;
+        }
+        if (Input.GetKey(KeyCode.R) && rotating) {
+            float a = ((360 - Vec2ToAngle(Vector2.up, (Camera.main.WorldToScreenPoint(SelectedDecal.roughPosition) - Input.mousePosition).normalized)) + baseAngle) % 360;
+            SelectedDecal.Rotation = a;
+        }
+        if (Input.GetKeyUp(KeyCode.R)) {
+            rotating = false;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha1)) SelectedSurface = CarDecalPart.None;
+        if (Input.GetKeyDown(KeyCode.Alpha2)) SelectedSurface = CarDecalPart.Hood;
+        if (Input.GetKeyDown(KeyCode.Alpha3)) SelectedSurface = CarDecalPart.Left;
+        if (Input.GetKeyDown(KeyCode.Alpha4)) SelectedSurface = CarDecalPart.Right;
+        if (Input.GetKeyDown(KeyCode.Alpha5)) SelectedSurface = CarDecalPart.Rear;
+        if (Input.GetKeyDown(KeyCode.Alpha6)) SelectedSurface = CarDecalPart.Top;
+    }
+
+    public static float Vec2ToAngle(Vector2 a, Vector2 b) {
+        float ang = Vector2.Angle(a, b);
+        Vector3 cross = Vector3.Cross(a, b);
+        if (cross.z > 0) ang = 360 - ang;
+        return ang;
+    }
+
+    void FixedUpdate () {
+        if (EditMode) {
+            //if (Input.GetMouseButton(0)) {
+            //    if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0) {
+            //        RaycastHit rayHit;
+            //        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            //        if (Physics.Raycast(ray, out rayHit)) {
+            //            if (rayHit.transform == CarToManage.transform) {
+            //                //selectionMarker.localPosition = new Vector3((rayHit.textureCoord.x - .5f) * 1024, (rayHit.textureCoord.y - .5f) * 1024, 0);
+            //            }
+            //        }
+            //    }
+            //}
+            if (Input.GetMouseButtonDown(0)) {
+                RaycastHit rayHit;
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                if (Physics.Raycast(ray, out rayHit)) {
+                    CarDecal d = new CarDecal(SelectedDecalTexture.TextureID, new Vector2((rayHit.textureCoord.x - .5f) * 1024, (rayHit.textureCoord.y - .5f) * 1024), SelectedSurface);
+                    d.roughPosition = rayHit.point;
+                    print("Attempted to add decal");
+                    AddDecal(d);
+                } else {
+                    SelectedDecal = null;
+                }
+            }
+        }
+    }
 
     private GameObject DecalOnCarPrefab = null;
 
     public void AddDecal(CarDecal decal) {
-        if(DecalOnCarPrefab == null) Resources.Load<GameObject>("DecalOnCar");
+        if(DecalOnCarPrefab == null) DecalOnCarPrefab = Resources.Load<GameObject>("DecalOnCar");
         GameObject t = Instantiate(DecalOnCarPrefab);
         t.transform.SetParent(CurrentMaskedSide, false);
+        decal.associatedObject = t.transform;
         t.GetComponent<DecalOnCar>().CurrentDecal = decal;
         ActiveCarDecalSelector.AddDecal(decal);
+        SelectedDecal = decal;
     }
 
     public Texture2D GenerateCarWrapTexture(int Resolution) {
@@ -130,7 +252,7 @@ public class CarDecalCreator : MonoBehaviour {
         RT.Create();
 
         if (EditMode) {
-            //selectionMarker.GetComponent<Renderer>().enabled = false;
+            selectionMarker.gameObject.SetActive(false);
         }
 
         camera.targetTexture = RT;
@@ -152,8 +274,9 @@ public class CarDecalCreator : MonoBehaviour {
         return "notyetimplemented";
     }
 
-    static GameObject WrapCreatorPrefab = (GameObject)Resources.Load("WrapCreator", typeof(GameObject));
+    static GameObject WrapCreatorPrefab = null;
     public static CarDecalCreator NewWrapCreator() {
+        if (WrapCreatorPrefab = null) WrapCreatorPrefab = (GameObject)Resources.Load("WrapCreator", typeof(GameObject));
         GameObject instance = Instantiate(WrapCreatorPrefab);
         return instance.GetComponent<CarDecalCreator>();
     }

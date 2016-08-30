@@ -32,6 +32,9 @@ public class CarDecal {
 
     [NonSerialized]
     public Transform associatedObject;
+    [NonSerialized]
+    public Vector2 roughPosition;
+
     public bool CanMirror {
         get {
             return Part == CarDecalPart.Left || Part == CarDecalPart.Right;
