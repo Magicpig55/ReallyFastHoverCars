@@ -23,6 +23,6 @@ public class Speedometer : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
         anim.SetFloat("speedPercentage", CarToTrack.SpeedPercent);
-        text.text = string.Format("{0:N0} #DICKSOUT4HARAMBE", CarToTrack.CurrentSpeed);
+        text.text = string.Format("{0:N0} u/s", CarToTrack.CurrentSpeed);
 	}
 }
